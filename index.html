@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Fabric.js Image Canvas</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
     <style>
@@ -14,6 +14,7 @@
             justify-content: center;
             height: 100vh;
             background-color: #f0f0f0;
+            touch-action: none;
         }
         #canvasContainer {
             width: 90vw;
@@ -21,11 +22,10 @@
             border: 2px solid #000;
             overflow: hidden;
             position: relative;
+            touch-action: none;
         }
         canvas {
             display: block;
-            width: 100%;
-            height: 100%;
         }
         #uploadBtn {
             margin-bottom: 10px;
@@ -51,6 +51,8 @@
         canvas.setWidth(container.clientWidth);
         canvas.setHeight(container.clientHeight);
 
+        let backgroundImg = null;
+
         document.getElementById('uploadBtn').addEventListener('change', function(event) {
             const file = event.target.files[0];
             if (file) {
@@ -60,6 +62,7 @@
                         img.scaleToWidth(canvas.width);
                         img.scaleToHeight(canvas.height);
                         canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas));
+                        backgroundImg = img;
                     });
                 };
                 reader.readAsDataURL(file);
@@ -68,7 +71,7 @@
 
         let isDragging = false, lastX = 0, lastY = 0;
 
-        // Panning
+        // Enable panning
         canvas.on('mouse:down', function(event) {
             isDragging = true;
             lastX = event.e.clientX;
@@ -89,7 +92,7 @@
             isDragging = false;
         });
 
-        // Pinch-to-Zoom
+        // Enable pinch-to-zoom
         let lastDistance = null;
 
         window.addEventListener("touchmove", function(event) {
@@ -99,8 +102,13 @@
                 const distance = Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY);
 
                 if (lastDistance) {
-                    const scaleFactor = distance / lastDistance;
-                    canvas.setZoom(canvas.getZoom() * scaleFactor);
+                    const zoom = canvas.getZoom() * (distance / lastDistance);
+                    canvas.setZoom(Math.min(Math.max(zoom, 0.5), 3)); // Prevent extreme zooming
+
+                    // Keep background image intact
+                    if (backgroundImg) {
+                        canvas.setBackgroundImage(backgroundImg, canvas.renderAll.bind(canvas));
+                    }
                 }
                 lastDistance = distance;
             }
