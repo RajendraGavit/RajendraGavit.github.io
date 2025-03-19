@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fabric.js Image Canvas with Touch Gestures</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
+    <style>
+        body { margin: 0; overflow: hidden; touch-action: none; }
+        canvas { border: 1px solid #000; display: block; width: 100vw; height: 100vh; }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+
+    <script>
+        const canvas = new fabric.Canvas('canvas', {
+            selection: false
+        });
+
+        // Load an image onto the canvas
+        fabric.Image.fromURL('https://source.unsplash.com/random/800x600', function(img) {
+            img.set({
+                left: canvas.width / 2,
+                top: canvas.height / 2,
+                originX: 'center',
+                originY: 'center',
+                selectable: false
+            });
+
+            canvas.add(img);
+            canvas.setActiveObject(img);
+        });
+
+        let lastX, lastY, isDragging = false;
+
+        // Enable panning
+        canvas.on('mouse:down', function(event) {
+            isDragging = true;
+            lastX = event.e.clientX;
+            lastY = event.e.clientY;
+            canvas.selection = false;
+        });
+
+        canvas.on('mouse:move', function(event) {
+            if (isDragging) {
+                const deltaX = event.e.clientX - lastX;
+                const deltaY = event.e.clientY - lastY;
+                canvas.getObjects().forEach(obj => {
+                    obj.left += deltaX;
+                    obj.top += deltaY;
+                    obj.setCoords();
+                });
+                canvas.renderAll();
+                lastX = event.e.clientX;
+                lastY = event.e.clientY;
+            }
+        });
+
+        canvas.on('mouse:up', function() {
+            isDragging = false;
+        });
+
+        // Enable pinch-to-zoom
+        let lastDistance = null;
+
+        window.addEventListener("touchmove", function(event) {
+            if (event.touches.length === 2) {
+                event.preventDefault();
+                const touch1 = event.touches[0];
+                const touch2 = event.touches[1];
+
+                const distance = Math.hypot(
+                    touch2.clientX - touch1.clientX,
+                    touch2.clientY - touch1.clientY
+                );
+
+                if (lastDistance) {
+                    const scaleFactor = distance / lastDistance;
+                    canvas.getObjects().forEach(obj => {
+                        obj.scaleX *= scaleFactor;
+                        obj.scaleY *= scaleFactor;
+                        obj.setCoords();
+                    });
+                    canvas.renderAll();
+                }
+                lastDistance = distance;
+            }
+        });
+
+        window.addEventListener("touchend", function() {
+            lastDistance = null;
+        });
+    </script>
+</body>
+</html>
